@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BLOCKS">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="manifest" href="manifest.json">
+<title>BLOCKS</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0a;
+  --surface: #111;
+  --surface2: #161616;
+  --border: #1e1e1e;
+  --border-mid: #2a2a2a;
+  --accent: #c8f060;
+  --accent-dim: #6b8a20;
+  --accent-bg: #0f1a00;
+  --neg: #ff5252;
+  --neg-bg: #1e0000;
+  --neg-dim: #7a1a1a;
+  --text: #ddd;
+  --text-mid: #777;
+  --text-dim: #444;
+  --sel-bg: #1c1c1c;
+  --radius: 3px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: 'DM Mono', monospace;
+  min-height: 100vh; min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* HEADER */
+header {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--bg); border-bottom: 1px solid var(--border);
+  padding: 0 20px; height: 52px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: env(safe-area-inset-top, 0);
+}
+.logo { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 7px; color: var(--text-dim); }
+.header-center { position: absolute; left: 50%; transform: translateX(-50%); display: flex; }
+.tab {
+  background: none; border: none; color: var(--text-dim);
+  font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 3px;
+  padding: 8px 18px; cursor: pointer; transition: color 0.12s;
+  text-transform: uppercase; position: relative;
+}
+.tab::after {
+  content: ''; position: absolute; bottom: -1px; left: 18px; right: 18px;
+  height: 1px; background: var(--accent); opacity: 0; transition: opacity 0.12s;
+}
+.tab.active { color: var(--accent); }
+.tab.active::after { opacity: 1; }
+.tab:hover:not(.active) { color: var(--text-mid); }
+.header-right { display: flex; align-items: center; gap: 10px; }
+.live-time { font-size: 10px; color: var(--text-dim); letter-spacing: 2px; font-variant-numeric: tabular-nums; }
+.sync-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--text-dim); transition: background 0.3s;
+}
+.sync-dot.syncing { background: #f0c060; animation: pulse 1s infinite; }
+.sync-dot.synced { background: var(--accent); }
+.sync-dot.error { background: var(--neg); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* VIEWS */
+.view { display: none; padding: 36px 20px 120px; max-width: 620px; margin: 0 auto; }
+.view.active { display: block; }
+
+/* HERO */
+.block-hero { margin-bottom: 36px; padding-bottom: 28px; border-bottom: 1px solid var(--border); }
+.block-eyebrow { font-size: 9px; letter-spacing: 4px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 10px; }
+.block-time-display {
+  font-family: 'Bebas Neue', sans-serif; font-size: 88px;
+  line-height: 0.9; color: var(--text); letter-spacing: -1px; margin-bottom: 10px;
+}
+.block-date-display { font-size: 10px; color: var(--text-dim); letter-spacing: 3px; text-transform: uppercase; }
+
+/* STREAK */
+.streak-row { display: flex; align-items: center; gap: 28px; margin-bottom: 40px; }
+.streak-item { display: flex; flex-direction: column; gap: 5px; }
+.streak-val { font-family: 'Bebas Neue', sans-serif; font-size: 30px; line-height: 1; color: var(--text); }
+.streak-val span { color: var(--accent); }
+.streak-lbl { font-size: 8px; letter-spacing: 3px; color: var(--text-dim); text-transform: uppercase; }
+.block-pips { display: flex; gap: 4px; align-items: center; margin-left: auto; }
+.pip { width: 7px; height: 26px; border-radius: 2px; background: var(--border-mid); transition: background 0.2s; }
+.pip.done { background: var(--accent); }
+
+/* STEPS */
+.step { margin-bottom: 32px; }
+.step-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+.step-num { font-family: 'Bebas Neue', sans-serif; font-size: 11px; color: var(--text-dim); letter-spacing: 2px; }
+.step-title { font-size: 9px; letter-spacing: 3px; color: var(--text-mid); text-transform: uppercase; }
+
+/* PILLS */
+.pill-group { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill {
+  background: none; border: 1px solid var(--border-mid); color: var(--text-dim);
+  font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 1px;
+  padding: 7px 13px; border-radius: 2px; cursor: pointer;
+  transition: border-color 0.1s, color 0.1s, background 0.1s, transform 0.08s;
+  text-transform: uppercase; -webkit-tap-highlight-color: transparent;
+}
+.pill:hover { color: var(--text-mid); background: var(--sel-bg); }
+.pill:active { transform: scale(0.93); }
+.pill.selected { border-color: var(--text-mid); color: var(--text); background: var(--sel-bg); }
+
+/* PANAS */
+.panas-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.panas-col-head {
+  font-size: 8px; letter-spacing: 3px; text-transform: uppercase;
+  margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.panas-col-head.pos { color: var(--accent-dim); }
+.panas-col-head.neg { color: var(--neg-dim); }
+.panas-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.panas-word { font-size: 11px; color: var(--text-mid); }
+.dot-row { display: flex; gap: 5px; }
+.dot {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 1px solid var(--border-mid); background: none; cursor: pointer;
+  transition: transform 0.08s, background 0.1s, border-color 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.dot:active { transform: scale(0.8); }
+.dot.filled { background: var(--accent); border-color: var(--accent); }
+.dot.neg-filled { background: var(--neg); border-color: var(--neg); }
+
+/* ONE LINER */
+.one-liner {
+  width: 100%; background: none; border: none;
+  border-bottom: 1px solid var(--border-mid);
+  color: var(--text); font-family: 'DM Mono', monospace;
+  font-size: 13px; letter-spacing: 0.5px;
+  padding: 10px 0; resize: none; height: 48px;
+  transition: border-color 0.15s; line-height: 1.4;
+}
+.one-liner:focus { outline: none; border-bottom-color: var(--text-mid); }
+.one-liner::placeholder { color: var(--text-dim); }
+.char-count { font-size: 9px; color: var(--text-dim); letter-spacing: 2px; text-align: right; margin-top: 6px; }
+
+/* SUBMIT */
+.submit-wrap { margin-top: 44px; }
+.submit-btn {
+  width: 100%; background: var(--accent); color: #000;
+  border: none; font-family: 'Bebas Neue', sans-serif;
+  font-size: 17px; letter-spacing: 7px; padding: 22px; cursor: pointer;
+  border-radius: var(--radius);
+  transition: background 0.12s, transform 0.08s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.submit-btn:hover { background: #d4ff6a; box-shadow: 0 0 40px rgba(200,240,96,0.1); }
+.submit-btn:active { transform: scale(0.99); }
+.submit-btn.success { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-dim); }
+
+/* LOG */
+.log-day { margin-bottom: 36px; }
+.log-day-label {
+  font-size: 8px; letter-spacing: 4px; color: var(--text-dim);
+  text-transform: uppercase; margin-bottom: 10px;
+  padding-bottom: 10px; border-bottom: 1px solid var(--border);
+}
+.log-entry { border-left: 2px solid var(--border-mid); margin-bottom: 1px; transition: border-color 0.12s; }
+.log-entry:hover { border-left-color: var(--text-dim); }
+.log-entry-head { display: flex; align-items: center; gap: 14px; padding: 12px 14px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.log-time { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--text-mid); letter-spacing: 1px; min-width: 58px; }
+.log-summary { flex: 1; font-size: 11px; color: var(--text-mid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.log-scores { display: flex; gap: 7px; }
+.score-badge { font-size: 9px; padding: 3px 8px; border-radius: 2px; letter-spacing: 1px; }
+.score-badge.pos { background: var(--accent-bg); color: var(--accent); }
+.score-badge.neg { background: var(--neg-bg); color: var(--neg); }
+.log-entry-body { display: none; padding: 2px 14px 14px; }
+.log-entry-body.open { display: block; }
+.log-detail { display: flex; gap: 12px; margin-bottom: 7px; font-size: 10px; }
+.log-key { color: var(--text-dim); letter-spacing: 2px; min-width: 58px; text-transform: uppercase; }
+.log-val { color: var(--text-mid); }
+.panas-inline { display: flex; flex-wrap: wrap; gap: 5px; }
+.panas-tag { font-size: 9px; padding: 2px 8px; border-radius: 2px; letter-spacing: 1px; }
+.panas-tag.pos { background: var(--accent-bg); color: var(--accent); border: 1px solid #1e3300; }
+.panas-tag.neg { background: var(--neg-bg); color: var(--neg); border: 1px solid #3a0000; }
+.log-empty { padding: 80px 0; text-align: center; font-size: 9px; letter-spacing: 3px; color: var(--text-dim); text-transform: uppercase; line-height: 2.2; }
+
+/* STATS */
+.stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; margin-bottom: 40px; }
+.stat-cell { background: var(--surface); padding: 18px; }
+.stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 44px; line-height: 1; color: var(--text); margin-bottom: 5px; }
+.stat-val span { color: var(--accent); }
+.stat-key { font-size: 8px; letter-spacing: 3px; color: var(--text-dim); text-transform: uppercase; }
+.stats-block { margin-bottom: 36px; }
+.section-head { font-size: 8px; letter-spacing: 4px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.bar-label { font-size: 10px; color: var(--text-mid); min-width: 88px; }
+.bar-track { flex: 1; height: 2px; background: var(--border-mid); border-radius: 1px; }
+.bar-fill { height: 100%; border-radius: 1px; transition: width 0.5s cubic-bezier(.4,0,.2,1); min-width: 2px; }
+.bar-fill.pos { background: var(--accent); }
+.bar-fill.neg { background: var(--neg); }
+.bar-fill.neu { background: var(--text-dim); }
+.bar-meta { font-size: 9px; color: var(--text-dim); white-space: nowrap; }
+.heatmap { display: flex; flex-wrap: wrap; gap: 3px; }
+.hm-cell { width: 24px; height: 24px; border-radius: 2px; background: var(--border); }
+.hm-cell.h1 { background: #152200; }
+.hm-cell.h2 { background: #244000; }
+.hm-cell.h3 { background: #3d6600; }
+.hm-cell.h4 { background: var(--accent); }
+.bh-entry { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 5px; overflow: hidden; }
+.bh-head { display: flex; align-items: center; gap: 12px; padding: 10px 14px; cursor: pointer; background: var(--surface); transition: background 0.1s; -webkit-tap-highlight-color: transparent; }
+.bh-head:hover { background: var(--surface2); }
+.bh-time { font-family: 'Bebas Neue', sans-serif; font-size: 15px; color: var(--text-mid); letter-spacing: 1px; min-width: 110px; }
+.bh-meta { flex: 1; font-size: 10px; color: var(--text-dim); }
+.bh-body { display: none; padding: 12px 14px; border-top: 1px solid var(--border); }
+.bh-body.open { display: block; }
+.bh-section-label { font-size: 8px; letter-spacing: 3px; text-transform: uppercase; margin: 10px 0 8px; }
+.bh-section-label.pos { color: var(--accent-dim); }
+.bh-section-label.neg { color: var(--neg-dim); }
+.bh-row { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+.bh-word { font-size: 10px; color: var(--text-dim); min-width: 80px; }
+.bh-dots { display: flex; gap: 3px; }
+.bh-dot { width: 11px; height: 11px; border-radius: 50%; background: var(--border-mid); }
+.bh-dot.p { background: var(--accent); }
+.bh-dot.n { background: var(--neg); }
+.bh-score { font-size: 9px; color: var(--text-dim); }
+.bh-note { font-size: 10px; color: var(--text-dim); font-style: italic; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+
+/* SETTINGS */
+.settings-section { margin-bottom: 36px; }
+.settings-label { font-size: 8px; letter-spacing: 4px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.settings-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.settings-input {
+  flex: 1; background: var(--surface); border: 1px solid var(--border-mid);
+  color: var(--text); font-family: 'DM Mono', monospace; font-size: 11px;
+  padding: 10px 12px; border-radius: var(--radius);
+}
+.settings-input:focus { outline: none; border-color: var(--text-mid); }
+.settings-input::placeholder { color: var(--text-dim); }
+.settings-btn {
+  background: var(--surface); border: 1px solid var(--border-mid);
+  color: var(--text-mid); font-family: 'DM Mono', monospace;
+  font-size: 9px; letter-spacing: 2px; padding: 10px 16px;
+  border-radius: var(--radius); cursor: pointer; text-transform: uppercase;
+  transition: all 0.12s; white-space: nowrap;
+}
+.settings-btn:hover { border-color: var(--text-mid); color: var(--text); }
+.settings-btn.primary { background: var(--accent); color: #000; border-color: var(--accent); }
+.settings-btn.primary:hover { background: #d4ff6a; }
+.settings-btn.danger { border-color: var(--neg-dim); color: var(--neg); }
+.settings-btn.danger:hover { background: var(--neg-bg); }
+.settings-note { font-size: 9px; color: var(--text-dim); letter-spacing: 1px; line-height: 1.8; margin-top: 8px; }
+
+/* EXPORT */
+.export-controls { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.range-btn {
+  background: none; border: 1px solid var(--border-mid);
+  color: var(--text-dim); font-family: 'DM Mono', monospace;
+  font-size: 9px; letter-spacing: 2px; padding: 7px 14px;
+  border-radius: var(--radius); cursor: pointer;
+  transition: all 0.12s; text-transform: uppercase;
+}
+.range-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+.export-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+  font-size: 10px; color: var(--text-mid); letter-spacing: 0.5px;
+  line-height: 1.8; white-space: pre-wrap; max-height: 320px;
+  overflow-y: auto; font-family: 'DM Mono', monospace;
+  margin-bottom: 12px;
+}
+.copy-btn {
+  width: 100%; background: var(--accent); color: #000;
+  border: none; font-family: 'Bebas Neue', sans-serif;
+  font-size: 15px; letter-spacing: 5px; padding: 16px;
+  cursor: pointer; border-radius: var(--radius);
+  transition: background 0.12s;
+}
+.copy-btn:hover { background: #d4ff6a; }
+.copy-btn.copied { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-dim); }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: calc(72px + var(--safe-bottom)); left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: var(--surface2); border: 1px solid var(--border-mid);
+  color: var(--text-mid); font-family: 'DM Mono', monospace;
+  font-size: 9px; letter-spacing: 3px; text-transform: uppercase;
+  padding: 10px 22px; border-radius: var(--radius);
+  opacity: 0; pointer-events: none; z-index: 999; transition: all 0.2s;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.success { border-color: var(--accent-dim); color: var(--accent); background: var(--accent-bg); }
+.toast.err { border-color: var(--neg-dim); color: var(--neg); background: var(--neg-bg); }
+
+/* MOBILE BOTTOM NAV */
+.mobile-tabs { display: none; }
+@media (max-width: 600px) {
+  .panas-cols { grid-template-columns: 1fr; }
+  .stat-row { grid-template-columns: 1fr; }
+  .block-time-display { font-size: 68px; }
+  .header-center { display: none; }
+  header { padding: 0 16px; }
+  .view { padding: 24px 16px 110px; }
+  .mobile-tabs {
+    display: flex; position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--bg); border-top: 1px solid var(--border);
+    z-index: 200; padding-bottom: var(--safe-bottom);
+  }
+}
+.mobile-tab {
+  flex: 1; padding: 14px 8px; background: none; border: none;
+  color: var(--text-dim); font-family: 'DM Mono', monospace;
+  font-size: 8px; letter-spacing: 2px; text-transform: uppercase;
+  cursor: pointer; transition: color 0.12s; -webkit-tap-highlight-color: transparent;
+}
+.mobile-tab.active { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">BLK</div>
+  <div class="header-center">
+    <button class="tab active" onclick="switchTab('checkin',this)">Check In</button>
+    <button class="tab" onclick="switchTab('log',this)">Log</button>
+    <button class="tab" onclick="switchTab('stats',this)">Stats</button>
+    <button class="tab" onclick="switchTab('export',this)">Export</button>
+    <button class="tab" onclick="switchTab('settings',this)">Setup</button>
+  </div>
+  <div class="header-right">
+    <div class="sync-dot" id="syncDot" title="Sync status"></div>
+    <div class="live-time" id="liveTime">00:00:00</div>
+  </div>
+</header>
+
+<!-- CHECK IN -->
+<div class="view active" id="view-checkin">
+  <div class="block-hero">
+    <div class="block-eyebrow">Current Block</div>
+    <div class="block-time-display" id="blockTime">00:00</div>
+    <div class="block-date-display" id="blockDate">—</div>
+  </div>
+  <div class="streak-row">
+    <div class="streak-item">
+      <div class="streak-val"><span id="streakNum">0</span></div>
+      <div class="streak-lbl">Day Streak</div>
+    </div>
+    <div class="streak-item">
+      <div class="streak-val"><span id="totalNum">0</span></div>
+      <div class="streak-lbl">Total Blocks</div>
+    </div>
+    <div class="block-pips" id="todayPips"></div>
+  </div>
+  <div class="step">
+    <div class="step-header"><div class="step-num">01</div><div class="step-title">Where + Who</div></div>
+    <div class="pill-group" id="location-group" style="margin-bottom:10px">
+      <button class="pill" onclick="selectPill(this,'location')">Home</button>
+      <button class="pill" onclick="selectPill(this,'location')">Work</button>
+      <button class="pill" onclick="selectPill(this,'location')">Outside</button>
+      <button class="pill" onclick="selectPill(this,'location')">Transit</button>
+      <button class="pill" onclick="selectPill(this,'location')">Social</button>
+    </div>
+    <div class="pill-group" id="company-group">
+      <button class="pill" onclick="selectPill(this,'company')">Alone</button>
+      <button class="pill" onclick="selectPill(this,'company')">Friend</button>
+      <button class="pill" onclick="selectPill(this,'company')">Family</button>
+      <button class="pill" onclick="selectPill(this,'company')">Colleague</button>
+      <button class="pill" onclick="selectPill(this,'company')">Stranger</button>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-header"><div class="step-num">02</div><div class="step-title">Activity</div></div>
+    <div class="pill-group" id="activity-group">
+      <button class="pill" onclick="selectPill(this,'activity')">Deep Work</button>
+      <button class="pill" onclick="selectPill(this,'activity')">Admin</button>
+      <button class="pill" onclick="selectPill(this,'activity')">Creative</button>
+      <button class="pill" onclick="selectPill(this,'activity')">Physical</button>
+      <button class="pill" onclick="selectPill(this,'activity')">Social</button>
+      <button class="pill" onclick="selectPill(this,'activity')">Rest</button>
+      <button class="pill" onclick="selectPill(this,'activity')">Leisure</button>
+      <button class="pill" onclick="selectPill(this,'activity')">Passive</button>
+      <button class="pill" onclick="selectPill(this,'activity')">Transit</button>
+      <button class="pill" onclick="selectPill(this,'activity')">Errands</button>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-header"><div class="step-num">03</div><div class="step-title">Affect — Rate 1 to 5</div></div>
+    <div class="panas-cols">
+      <div><div class="panas-col-head pos">↑ Positive</div><div id="pos-ratings"></div></div>
+      <div><div class="panas-col-head neg">↓ Negative</div><div id="neg-ratings"></div></div>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-header"><div class="step-num">04</div><div class="step-title">One Line</div></div>
+    <textarea class="one-liner" id="oneLiner" placeholder="What defined this block?" maxlength="120"
+      oninput="document.getElementById('charCount').textContent=this.value.length+'/120'"></textarea>
+    <div class="char-count" id="charCount">0/120</div>
+  </div>
+  <div class="submit-wrap">
+    <button class="submit-btn" id="submitBtn" onclick="submitEntry()">Log Block</button>
+  </div>
+</div>
+
+<!-- LOG -->
+<div class="view" id="view-log">
+  <div id="logContent"><div class="log-empty">No entries yet<br>Start your first check-in</div></div>
+</div>
+
+<!-- STATS -->
+<div class="view" id="view-stats">
+  <div class="stat-row">
+    <div class="stat-cell"><div class="stat-val"><span id="statTotal">0</span></div><div class="stat-key">Total Blocks</div></div>
+    <div class="stat-cell"><div class="stat-val"><span id="statStreak">0</span></div><div class="stat-key">Day Streak</div></div>
+    <div class="stat-cell"><div class="stat-val"><span id="statAvgPos">—</span></div><div class="stat-key">Avg Positive</div></div>
+    <div class="stat-cell"><div class="stat-val"><span id="statAvgNeg">—</span></div><div class="stat-key">Avg Negative</div></div>
+  </div>
+  <div class="stats-block"><div class="section-head">30-Day Heatmap</div><div class="heatmap" id="heatmap"></div></div>
+  <div class="stats-block"><div class="section-head">Activity Distribution</div><div id="actBreakdown"><div style="color:var(--text-dim);font-size:10px;letter-spacing:2px">No data yet</div></div></div>
+  <div class="stats-block"><div class="section-head">↑ Positive — Word Breakdown</div><div id="posBreakdown"><div style="color:var(--text-dim);font-size:10px;letter-spacing:2px">No data yet</div></div></div>
+  <div class="stats-block"><div class="section-head">↓ Negative — Word Breakdown</div><div id="negBreakdown"><div style="color:var(--text-dim);font-size:10px;letter-spacing:2px">No data yet</div></div></div>
+  <div class="stats-block"><div class="section-head">Block History — Full PANAS</div><div id="blockHistory"><div style="color:var(--text-dim);font-size:10px;letter-spacing:2px">No data yet</div></div></div>
+</div>
+
+<!-- EXPORT -->
+<div class="view" id="view-export">
+  <div class="stats-block">
+    <div class="section-head">AI Analysis Export</div>
+    <div class="export-controls">
+      <button class="range-btn active" onclick="setRange(3,this)">3 Days</button>
+      <button class="range-btn" onclick="setRange(7,this)">7 Days</button>
+      <button class="range-btn" onclick="setRange(14,this)">14 Days</button>
+      <button class="range-btn" onclick="setRange(30,this)">30 Days</button>
+      <button class="range-btn" onclick="setRange(0,this)">All</button>
+    </div>
+    <div class="export-box" id="exportBox">Generate a summary to copy and paste into any AI for analysis.</div>
+    <button class="copy-btn" id="copyBtn" onclick="copyExport()">Copy to Clipboard</button>
+    <div class="settings-note" style="margin-top:12px">
+      Paste this into Claude, ChatGPT, or any AI and ask:<br>
+      "Analyse my daily patterns. What activities correlate with my highest and lowest affect scores? What should I do more or less of?"
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="view" id="view-settings">
+  <div class="settings-section">
+    <div class="settings-label">Cross-Device Sync — JSONBin</div>
+    <div class="settings-note" style="margin-bottom:16px">
+      Free sync across all your devices. Get a free API key at jsonbin.io → go to API Keys → create key. Paste below and hit Save. Your data will sync automatically whenever you log a block.
+    </div>
+    <div class="settings-row">
+      <input class="settings-input" id="apiKeyInput" type="password" placeholder="$2a$10$... (JSONBin API key)">
+      <button class="settings-btn primary" onclick="saveApiKey()">Save</button>
+    </div>
+    <div class="settings-row">
+      <input class="settings-input" id="binIdInput" placeholder="Bin ID (auto-created on first save)">
+      <button class="settings-btn" onclick="syncNow()">Sync Now</button>
+    </div>
+    <div id="syncStatus" class="settings-note">Status: not configured</div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-label">Manual Backup</div>
+    <div class="settings-note" style="margin-bottom:14px">Download all your data as JSON. Keep this somewhere safe as a backup.</div>
+    <div class="settings-row">
+      <button class="settings-btn" onclick="downloadBackup()">Download Backup JSON</button>
+      <button class="settings-btn" onclick="document.getElementById('restoreFile').click()">Restore from JSON</button>
+      <input type="file" id="restoreFile" accept=".json" style="display:none" onchange="restoreBackup(this)">
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-label">PWA — Add to Home Screen</div>
+    <div class="settings-note">
+      On iPhone: tap the Share button in Safari → "Add to Home Screen" → BLOCKS will open fullscreen like a native app, no browser chrome.<br><br>
+      On Android: tap the browser menu → "Add to Home Screen" or "Install App".<br><br>
+      On desktop Chrome: click the install icon in the address bar.
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-label">Data</div>
+    <div class="settings-row">
+      <button class="settings-btn danger" onclick="confirmClear()">Clear All Data</button>
+    </div>
+    <div id="dataCount" class="settings-note"></div>
+  </div>
+</div>
+
+<!-- MOBILE NAV -->
+<div class="mobile-tabs">
+  <button class="mobile-tab active" onclick="switchTab('checkin',this)">Check In</button>
+  <button class="mobile-tab" onclick="switchTab('log',this)">Log</button>
+  <button class="mobile-tab" onclick="switchTab('stats',this)">Stats</button>
+  <button class="mobile-tab" onclick="switchTab('export',this)">Export</button>
+  <button class="mobile-tab" onclick="switchTab('settings',this)">Setup</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────
+const KEY = 'blocks_v2';
+const CFG = 'blocks_cfg';
+let entries = JSON.parse(localStorage.getItem(KEY)||'[]');
+let cfg = JSON.parse(localStorage.getItem(CFG)||'{}');
+const posWords = ['Energetic','Focused','Motivated','Calm','Satisfied'];
+const negWords = ['Anxious','Irritable','Drained','Distracted','Numb','Bored'];
+let ratings = {};
+let exportRange = 3;
+let syncTimer = null;
+
+// ── INIT ──────────────────────────────────────────────
+function init() {
+  buildPanas();
+  updateClock();
+  setInterval(updateClock, 1000);
+  refreshMeta();
+  loadSettings();
+  generateExport();
+  // Register service worker for PWA
+  if('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
+}
+
+function loadSettings() {
+  if(cfg.apiKey) document.getElementById('apiKeyInput').value = cfg.apiKey;
+  if(cfg.binId) document.getElementById('binIdInput').value = cfg.binId;
+  updateSyncStatus();
+  updateDataCount();
+}
+
+// ── PANAS BUILD ───────────────────────────────────────
+function buildPanas() {
+  posWords.forEach(w=>{ ratings['pos_'+w]=0; document.getElementById('pos-ratings').appendChild(ratingRow(w,'pos')); });
+  negWords.forEach(w=>{ ratings['neg_'+w]=0; document.getElementById('neg-ratings').appendChild(ratingRow(w,'neg')); });
+}
+function ratingRow(word, type) {
+  const row=document.createElement('div'); row.className='panas-row';
+  const lbl=document.createElement('div'); lbl.className='panas-word'; lbl.textContent=word;
+  const dots=document.createElement('div'); dots.className='dot-row';
+  for(let i=1;i<=5;i++){
+    const d=document.createElement('button'); d.className='dot';
+    d.dataset.word=word; d.dataset.type=type; d.dataset.val=i;
+    d.onclick=()=>setRating(word,type,i);
+    dots.appendChild(d);
+  }
+  row.appendChild(lbl); row.appendChild(dots); return row;
+}
+function setRating(word, type, val) {
+  ratings[type+'_'+word]=val;
+  document.querySelectorAll(`.dot[data-word="${word}"][data-type="${type}"]`).forEach(d=>{
+    const v=parseInt(d.dataset.val);
+    d.className='dot'+(v<=val?(type==='pos'?' filled':' neg-filled'):'');
+  });
+}
+
+// ── CLOCK ─────────────────────────────────────────────
+function updateClock() {
+  const n=new Date();
+  document.getElementById('liveTime').textContent=n.toTimeString().slice(0,8);
+  document.getElementById('blockTime').textContent=n.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('blockDate').textContent=n.toLocaleDateString([],{weekday:'long',month:'long',day:'numeric',year:'numeric'}).toUpperCase();
+}
+
+// ── META ──────────────────────────────────────────────
+function refreshMeta() {
+  document.getElementById('streakNum').textContent=calcStreak();
+  document.getElementById('totalNum').textContent=entries.length;
+  renderPips();
+}
+function calcStreak() {
+  const days=[...new Set(entries.map(e=>e.ts.slice(0,10)))].sort().reverse();
+  let streak=0, check=new Date().toISOString().slice(0,10);
+  for(const d of days){
+    if(d===check){ streak++; const dt=new Date(check); dt.setDate(dt.getDate()-1); check=dt.toISOString().slice(0,10); }
+    else if(d<check) break;
+  }
+  return streak;
+}
+function renderPips() {
+  const today=new Date().toISOString().slice(0,10);
+  const n=entries.filter(e=>e.ts.slice(0,10)===today).length;
+  const c=document.getElementById('todayPips'); c.innerHTML='';
+  for(let i=0;i<5;i++){
+    const p=document.createElement('div');
+    p.className='pip'+(i<n?' done':'');
+    c.appendChild(p);
+  }
+}
+
+// ── PILLS ─────────────────────────────────────────────
+function selectPill(el, group) {
+  document.getElementById(group+'-group').querySelectorAll('.pill').forEach(p=>p.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function getSelected(group) {
+  const s=document.querySelector(`#${group}-group .pill.selected`);
+  return s?s.textContent:null;
+}
+
+// ── SUBMIT ────────────────────────────────────────────
+function submitEntry() {
+  const location=getSelected('location'), company=getSelected('company'), activity=getSelected('activity');
+  if(!location||!company||!activity){ showToast('Select context + activity',''); return; }
+  const posScore=posWords.reduce((s,w)=>s+(ratings['pos_'+w]||0),0);
+  const negScore=negWords.reduce((s,w)=>s+(ratings['neg_'+w]||0),0);
+  entries.unshift({
+    id:Date.now(), ts:new Date().toISOString(),
+    location, company, activity,
+    oneLiner:document.getElementById('oneLiner').value.trim(),
+    posAffect:Object.fromEntries(posWords.map(w=>[w,ratings['pos_'+w]||0])),
+    negAffect:Object.fromEntries(negWords.map(w=>[w,ratings['neg_'+w]||0])),
+    posScore, negScore
+  });
+  localStorage.setItem(KEY,JSON.stringify(entries));
+  const btn=document.getElementById('submitBtn');
+  btn.textContent='Logged ✓'; btn.classList.add('success');
+  setTimeout(()=>{ btn.textContent='Log Block'; btn.classList.remove('success'); },1800);
+  resetForm(); refreshMeta();
+  showToast('Block logged','success');
+  // debounced sync
+  if(cfg.apiKey){ clearTimeout(syncTimer); syncTimer=setTimeout(syncToCloud,2000); }
+}
+
+function resetForm() {
+  ['location','company','activity'].forEach(g=>document.getElementById(g+'-group').querySelectorAll('.pill').forEach(p=>p.classList.remove('selected')));
+  [...posWords,...negWords].forEach(w=>{
+    const t=posWords.includes(w)?'pos':'neg'; ratings[t+'_'+w]=0;
+    document.querySelectorAll(`.dot[data-word="${w}"]`).forEach(d=>d.className='dot');
+  });
+  document.getElementById('oneLiner').value='';
+  document.getElementById('charCount').textContent='0/120';
+}
+
+// ── LOG ───────────────────────────────────────────────
+function renderLog() {
+  const c=document.getElementById('logContent');
+  if(!entries.length){ c.innerHTML='<div class="log-empty">No entries yet<br>Start your first check-in</div>'; return; }
+  const byDay={};
+  entries.forEach(e=>{ const d=e.ts.slice(0,10); if(!byDay[d]) byDay[d]=[]; byDay[d].push(e); });
+  c.innerHTML='';
+  Object.keys(byDay).sort().reverse().forEach(day=>{
+    const dEl=document.createElement('div'); dEl.className='log-day';
+    const dt=new Date(day+'T12:00:00');
+    dEl.innerHTML=`<div class="log-day-label">${dt.toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'}).toUpperCase()}</div>`;
+    byDay[day].forEach(e=>dEl.appendChild(buildLogEntry(e)));
+    c.appendChild(dEl);
+  });
+}
+function buildLogEntry(e) {
+  const el=document.createElement('div'); el.className='log-entry';
+  const time=new Date(e.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const posRated=Object.entries(e.posAffect).filter(([,v])=>v>0);
+  const negRated=Object.entries(e.negAffect).filter(([,v])=>v>0);
+  const id='le_'+e.id;
+  el.innerHTML=`
+    <div class="log-entry-head" onclick="document.getElementById('${id}').classList.toggle('open')">
+      <div class="log-time">${time}</div>
+      <div class="log-summary">${e.oneLiner||e.activity}</div>
+      <div class="log-scores">
+        <span class="score-badge pos">+${e.posScore}</span>
+        <span class="score-badge neg">−${e.negScore}</span>
+      </div>
+    </div>
+    <div class="log-entry-body" id="${id}">
+      <div class="log-detail"><div class="log-key">Where</div><div class="log-val">${e.location}</div></div>
+      <div class="log-detail"><div class="log-key">With</div><div class="log-val">${e.company}</div></div>
+      <div class="log-detail"><div class="log-key">Mode</div><div class="log-val">${e.activity}</div></div>
+      ${e.oneLiner?`<div class="log-detail"><div class="log-key">Note</div><div class="log-val">"${e.oneLiner}"</div></div>`:''}
+      <div class="log-detail"><div class="log-key">Pos</div><div class="panas-inline">${posRated.map(([k,v])=>`<span class="panas-tag pos">${k} ${v}</span>`).join('')||'<span style="color:var(--text-dim);font-size:10px">—</span>'}</div></div>
+      <div class="log-detail"><div class="log-key">Neg</div><div class="panas-inline">${negRated.map(([k,v])=>`<span class="panas-tag neg">${k} ${v}</span>`).join('')||'<span style="color:var(--text-dim);font-size:10px">—</span>'}</div></div>
+    </div>`;
+  return el;
+}
+
+// ── STATS ─────────────────────────────────────────────
+function renderStats() {
+  document.getElementById('statTotal').textContent=entries.length;
+  document.getElementById('statStreak').textContent=calcStreak();
+  if(!entries.length) return;
+  document.getElementById('statAvgPos').textContent=(entries.reduce((s,e)=>s+e.posScore,0)/entries.length).toFixed(1);
+  document.getElementById('statAvgNeg').textContent=(entries.reduce((s,e)=>s+e.negScore,0)/entries.length).toFixed(1);
+  const hm=document.getElementById('heatmap'); hm.innerHTML='';
+  const today=new Date();
+  for(let i=29;i>=0;i--){
+    const d=new Date(today); d.setDate(d.getDate()-i);
+    const k=d.toISOString().slice(0,10);
+    const n=entries.filter(e=>e.ts.slice(0,10)===k).length;
+    const cell=document.createElement('div');
+    cell.className='hm-cell'+(n===0?'':n===1?' h1':n===2?' h2':n===3?' h3':' h4');
+    cell.title=`${k}: ${n}`; hm.appendChild(cell);
+  }
+  const actCount={};
+  entries.forEach(e=>actCount[e.activity]=(actCount[e.activity]||0)+1);
+  document.getElementById('actBreakdown').innerHTML=Object.entries(actCount).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`
+    <div class="bar-row"><div class="bar-label">${k}</div>
+    <div class="bar-track"><div class="bar-fill neu" style="width:${(v/entries.length*100).toFixed(0)}%"></div></div>
+    <div class="bar-meta">${v} · ${(v/entries.length*100).toFixed(0)}%</div></div>`).join('');
+  document.getElementById('posBreakdown').innerHTML=posWords.map(w=>{
+    const scores=entries.map(e=>e.posAffect[w]||0);
+    const avg=(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1);
+    const highs=scores.filter(s=>s>=4).length;
+    return `<div class="bar-row"><div class="bar-label">${w}</div>
+    <div class="bar-track"><div class="bar-fill pos" style="width:${(avg/5*100).toFixed(0)}%"></div></div>
+    <div class="bar-meta">avg ${avg} · ${highs}× high</div></div>`;
+  }).join('');
+  document.getElementById('negBreakdown').innerHTML=negWords.map(w=>{
+    const scores=entries.map(e=>e.negAffect[w]||0);
+    const avg=(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1);
+    const highs=scores.filter(s=>s>=4).length;
+    return `<div class="bar-row"><div class="bar-label">${w}</div>
+    <div class="bar-track"><div class="bar-fill neg" style="width:${(avg/5*100).toFixed(0)}%"></div></div>
+    <div class="bar-meta">avg ${avg} · ${highs}× high</div></div>`;
+  }).join('');
+  document.getElementById('blockHistory').innerHTML=entries.slice(0,40).map(e=>{
+    const time=new Date(e.ts).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    const id='bh_'+e.id;
+    const posRated=Object.entries(e.posAffect).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+    const negRated=Object.entries(e.negAffect).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+    return `<div class="bh-entry">
+      <div class="bh-head" onclick="document.getElementById('${id}').classList.toggle('open')">
+        <div class="bh-time">${time}</div><div class="bh-meta">${e.activity} · ${e.location}</div>
+        <span class="score-badge pos">+${e.posScore}</span>
+        <span class="score-badge neg">−${e.negScore}</span>
+      </div>
+      <div class="bh-body" id="${id}">
+        ${posRated.length?`<div class="bh-section-label pos">Positive</div>${posRated.map(([k,v])=>`
+          <div class="bh-row"><div class="bh-word">${k}</div>
+          <div class="bh-dots">${[1,2,3,4,5].map(i=>`<div class="bh-dot${i<=v?' p':''}"></div>`).join('')}</div>
+          <div class="bh-score">${v}/5</div></div>`).join('')}`:''}
+        ${negRated.length?`<div class="bh-section-label neg">Negative</div>${negRated.map(([k,v])=>`
+          <div class="bh-row"><div class="bh-word">${k}</div>
+          <div class="bh-dots">${[1,2,3,4,5].map(i=>`<div class="bh-dot${i<=v?' n':''}"></div>`).join('')}</div>
+          <div class="bh-score">${v}/5</div></div>`).join('')}`:''}
+        ${e.oneLiner?`<div class="bh-note">"${e.oneLiner}"</div>`:''}
+      </div></div>`;
+  }).join('');
+}
+
+// ── EXPORT ────────────────────────────────────────────
+function setRange(days, btn) {
+  exportRange=days;
+  document.querySelectorAll('.range-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  generateExport();
+}
+
+function generateExport() {
+  const now=new Date();
+  const cutoff = exportRange===0 ? new Date(0) : new Date(now - exportRange*24*60*60*1000);
+  const filtered = entries.filter(e=>new Date(e.ts)>=cutoff);
+  if(!filtered.length){
+    document.getElementById('exportBox').textContent='No entries in this range yet.';
+    return;
+  }
+  const rangeLabel = exportRange===0?'All time':`Last ${exportRange} days`;
+  const avgPos=(filtered.reduce((s,e)=>s+e.posScore,0)/filtered.length).toFixed(1);
+  const avgNeg=(filtered.reduce((s,e)=>s+e.negScore,0)/filtered.length).toFixed(1);
+
+  // PANAS word averages
+  const posAvgs=posWords.map(w=>{
+    const avg=(filtered.map(e=>e.posAffect[w]||0).reduce((a,b)=>a+b,0)/filtered.length).toFixed(1);
+    return `  ${w}: ${avg}/5`;
+  });
+  const negAvgs=negWords.map(w=>{
+    const avg=(filtered.map(e=>e.negAffect[w]||0).reduce((a,b)=>a+b,0)/filtered.length).toFixed(1);
+    return `  ${w}: ${avg}/5`;
+  });
+
+  // Activity breakdown with affect per activity
+  const actGroups={};
+  filtered.forEach(e=>{
+    if(!actGroups[e.activity]) actGroups[e.activity]=[];
+    actGroups[e.activity].push(e);
+  });
+  const actLines=Object.entries(actGroups).sort((a,b)=>b[1].length-a[1].length).map(([k,v])=>{
+    const aPos=(v.reduce((s,e)=>s+e.posScore,0)/v.length).toFixed(1);
+    const aNeg=(v.reduce((s,e)=>s+e.negScore,0)/v.length).toFixed(1);
+    return `  ${k}: ${v.length} blocks · avg pos ${aPos} · avg neg ${aNeg}`;
+  });
+
+  // Context breakdown
+  const locGroups={};
+  filtered.forEach(e=>{ if(!locGroups[e.location]) locGroups[e.location]=[]; locGroups[e.location].push(e); });
+  const locLines=Object.entries(locGroups).sort((a,b)=>b[1].length-a[1].length).map(([k,v])=>{
+    const aPos=(v.reduce((s,e)=>s+e.posScore,0)/v.length).toFixed(1);
+    return `  ${k}: ${v.length} blocks · avg pos ${aPos}`;
+  });
+
+  // Company breakdown
+  const comGroups={};
+  filtered.forEach(e=>{ if(!comGroups[e.company]) comGroups[e.company]=[]; comGroups[e.company].push(e); });
+  const comLines=Object.entries(comGroups).sort((a,b)=>b[1].length-a[1].length).map(([k,v])=>{
+    const aPos=(v.reduce((s,e)=>s+e.posScore,0)/v.length).toFixed(1);
+    return `  ${k}: ${v.length} blocks · avg pos ${aPos}`;
+  });
+
+  // Daily log with one-liners
+  const byDay={};
+  filtered.forEach(e=>{ const d=e.ts.slice(0,10); if(!byDay[d]) byDay[d]=[]; byDay[d].push(e); });
+  const dailyLines=[];
+  Object.keys(byDay).sort().reverse().forEach(day=>{
+    const dt=new Date(day+'T12:00:00');
+    const label=dt.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
+    dailyLines.push(`\n${label.toUpperCase()} (${byDay[day].length} blocks)`);
+    byDay[day].forEach(e=>{
+      const t=new Date(e.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+      const posTop=Object.entries(e.posAffect).filter(([,v])=>v>=4).map(([k])=>k).join(', ')||'—';
+      const negTop=Object.entries(e.negAffect).filter(([,v])=>v>=4).map(([k])=>k).join(', ')||'—';
+      const note=e.oneLiner?` "${e.oneLiner}"`:'';
+      dailyLines.push(`  ${t} · ${e.activity} · ${e.location} · ${e.company}`);
+      dailyLines.push(`       pos ${e.posScore}/25 [${posTop}] · neg ${e.negScore}/25 [${negTop}]${note}`);
+    });
+  });
+
+  const summary = [
+    `BLOCKS JOURNAL — ${rangeLabel.toUpperCase()}`,
+    `Generated: ${new Date().toLocaleString()}`,
+    `Entries: ${filtered.length} blocks`,
+    ``,
+    `OVERALL AFFECT`,
+    `  Avg Positive Score: ${avgPos}/25`,
+    `  Avg Negative Score: ${avgNeg}/25`,
+    ``,
+    `POSITIVE AFFECT — Word Breakdown`,
+    ...posAvgs,
+    ``,
+    `NEGATIVE AFFECT — Word Breakdown`,
+    ...negAvgs,
+    ``,
+    `ACTIVITY BREAKDOWN (blocks · avg affect)`,
+    ...actLines,
+    ``,
+    `LOCATION BREAKDOWN`,
+    ...locLines,
+    ``,
+    `COMPANY BREAKDOWN`,
+    ...comLines,
+    ``,
+    `DAILY LOG (with one-line summaries)`,
+    ...dailyLines,
+    ``,
+    `---`,
+    `Prompt suggestion: "Analyse these journal entries. What activities, locations, and social contexts correlate with my highest positive affect? What patterns do you notice in my negative affect? What concrete changes would you recommend based on this data?"`
+  ].join('\n');
+
+  document.getElementById('exportBox').textContent=summary;
+}
+
+function copyExport() {
+  const text=document.getElementById('exportBox').textContent;
+  if(text==='No entries in this range yet.'||text.includes('Generate a summary')) return;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn=document.getElementById('copyBtn');
+    btn.textContent='Copied ✓'; btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent='Copy to Clipboard'; btn.classList.remove('copied'); },2000);
+    showToast('Copied to clipboard','success');
+  }).catch(()=>showToast('Copy failed — select text manually','err'));
+}
+
+// ── SYNC ──────────────────────────────────────────────
+function setSyncDot(state) {
+  const d=document.getElementById('syncDot');
+  d.className='sync-dot '+state;
+}
+
+async function syncToCloud() {
+  if(!cfg.apiKey) return;
+  setSyncDot('syncing');
+  try {
+    const payload={entries, lastSync:new Date().toISOString()};
+    if(!cfg.binId) {
+      // Create new bin
+      const res=await fetch('https://api.jsonbin.io/v3/b',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-Master-Key':cfg.apiKey,'X-Bin-Name':'blocks-journal','X-Bin-Private':'true'},
+        body:JSON.stringify(payload)
+      });
+      if(!res.ok) throw new Error('Create failed');
+      const data=await res.json();
+      cfg.binId=data.metadata.id;
+      localStorage.setItem(CFG,JSON.stringify(cfg));
+      document.getElementById('binIdInput').value=cfg.binId;
+    } else {
+      // Update existing bin
+      const res=await fetch(`https://api.jsonbin.io/v3/b/${cfg.binId}`,{
+        method:'PUT',
+        headers:{'Content-Type':'application/json','X-Master-Key':cfg.apiKey},
+        body:JSON.stringify(payload)
+      });
+      if(!res.ok) throw new Error('Update failed');
+    }
+    setSyncDot('synced');
+    updateSyncStatus('Last synced: '+new Date().toLocaleTimeString());
+  } catch(err) {
+    setSyncDot('error');
+    updateSyncStatus('Sync error: '+err.message);
+  }
+}
+
+async function syncFromCloud() {
+  if(!cfg.apiKey||!cfg.binId) return;
+  setSyncDot('syncing');
+  try {
+    const res=await fetch(`https://api.jsonbin.io/v3/b/${cfg.binId}/latest`,{
+      headers:{'X-Master-Key':cfg.apiKey}
+    });
+    if(!res.ok) throw new Error('Fetch failed');
+    const data=await res.json();
+    const remote=data.record;
+    if(remote.entries&&remote.entries.length>0) {
+      // Merge: combine local and remote, dedupe by id, sort by ts
+      const merged=[...entries,...remote.entries];
+      const seen=new Set();
+      entries=merged.filter(e=>{ if(seen.has(e.id)) return false; seen.add(e.id); return true; });
+      entries.sort((a,b)=>new Date(b.ts)-new Date(a.ts));
+      localStorage.setItem(KEY,JSON.stringify(entries));
+      refreshMeta();
+    }
+    setSyncDot('synced');
+    updateSyncStatus('Synced from cloud: '+new Date().toLocaleTimeString());
+    showToast('Synced from cloud','success');
+  } catch(err) {
+    setSyncDot('error');
+    updateSyncStatus('Sync error: '+err.message);
+    showToast('Sync failed','err');
+  }
+}
+
+function syncNow() {
+  if(!cfg.apiKey){ showToast('Enter API key first','err'); return; }
+  // Pull first, then push
+  syncFromCloud().then(()=>syncToCloud());
+}
+
+function saveApiKey() {
+  cfg.apiKey=document.getElementById('apiKeyInput').value.trim();
+  cfg.binId=document.getElementById('binIdInput').value.trim()||'';
+  localStorage.setItem(CFG,JSON.stringify(cfg));
+  updateSyncStatus('API key saved. Hit Sync Now to connect.');
+  showToast('Saved','success');
+  if(cfg.apiKey) syncToCloud();
+}
+
+function updateSyncStatus(msg) {
+  const el=document.getElementById('syncStatus');
+  if(el) el.textContent='Status: '+(msg||(!cfg.apiKey?'not configured':'configured'));
+}
+
+// ── BACKUP ────────────────────────────────────────────
+function downloadBackup() {
+  const blob=new Blob([JSON.stringify({entries,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='blocks-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click(); URL.revokeObjectURL(url);
+}
+
+function restoreBackup(input) {
+  const file=input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try {
+      const data=JSON.parse(e.target.result);
+      if(data.entries&&Array.isArray(data.entries)){
+        entries=data.entries;
+        localStorage.setItem(KEY,JSON.stringify(entries));
+        refreshMeta(); updateDataCount();
+        showToast('Restored '+entries.length+' entries','success');
+      }
+    } catch { showToast('Invalid backup file','err'); }
+  };
+  reader.readAsText(file);
+}
+
+function updateDataCount() {
+  const el=document.getElementById('dataCount');
+  if(el) el.textContent=`${entries.length} entries · ~${(JSON.stringify(entries).length/1024).toFixed(1)}kb used`;
+}
+
+function confirmClear() {
+  if(confirm('Delete all journal entries? This cannot be undone.')) {
+    entries=[]; localStorage.setItem(KEY,JSON.stringify(entries));
+    refreshMeta(); updateDataCount();
+    showToast('All data cleared','');
+  }
+}
+
+// ── TABS ──────────────────────────────────────────────
+function switchTab(tab, el) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.tab, .mobile-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('view-'+tab).classList.add('active');
+  document.querySelectorAll('.tab, .mobile-tab').forEach(t=>{
+    if(t.getAttribute('onclick')&&t.getAttribute('onclick').includes("'"+tab+"'")) t.classList.add('active');
+  });
+  if(tab==='log') renderLog();
+  if(tab==='stats') renderStats();
+  if(tab==='export') generateExport();
+  if(tab==='settings') { updateSyncStatus(); updateDataCount(); }
+}
+
+// ── TOAST ─────────────────────────────────────────────
+function showToast(msg, type='') {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show'+(type?' '+type:'');
+  setTimeout(()=>t.className='toast',2400);
+}
+
+// Auto-sync from cloud on load if configured
+init();
+if(cfg.apiKey&&cfg.binId) setTimeout(syncFromCloud, 1000);
+</script>
+</body>
+</html>
