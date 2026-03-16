@@ -625,12 +625,11 @@ header { position: sticky; top: 0; z-index: 100; background: var(--bg); border-b
   <!-- SETUP PANEL -->
   <div class="data-panel" id="dp-setup">
     <div class="settings-section">
-      <div class="settings-label">Sync — JSONBin</div>
-      <div class="settings-note" style="margin-bottom:12px">Free cross-device sync. Get API key at jsonbin.io → API Keys.</div>
+      <div class="settings-label">Sync — Local Server</div>
+      <div class="settings-note" style="margin-bottom:12px">Your BLOCKS server on Tailscale. Data stays on your machine.</div>
       <div class="settings-row">
-        <input class="settings-input" id="apiKeyInput" type="password" placeholder="API key ($2a$10$...)">
-        <input class="settings-input" id="binIdInput" placeholder="Bin ID (auto-created)">
-        <button class="settings-btn primary" onclick="saveApiKey()">Save</button>
+        <input class="settings-input" id="serverUrlInput" placeholder="http://100.111.243.76:3000">
+        <button class="settings-btn primary" onclick="saveServerUrl()">Save</button>
         <button class="settings-btn" onclick="syncNow()">Sync</button>
       </div>
       <div id="syncStatus" class="settings-note">Status: not configured</div>
@@ -856,7 +855,7 @@ function submitEntry() {
   btn.textContent='Logged ✓'; btn.classList.add('success');
   setTimeout(()=>{ btn.textContent='Log Block'; btn.classList.remove('success'); },1800);
   resetForm(); refreshMeta(); showToast('Block logged','success');
-  if(cfg.apiKey){ clearTimeout(syncTimer); syncTimer=setTimeout(syncToCloud,2000); }
+  if(cfg.serverUrl){ clearTimeout(syncTimer); syncTimer=setTimeout(syncToServer,2000); }
 }
 function resetForm() {
   ['location','company'].forEach(g=>document.getElementById(g+'-group').querySelectorAll('.pill').forEach(p=>p.classList.remove('selected')));
@@ -942,7 +941,7 @@ function toggleSleep() {
     showToast('Morning logged','success');
   }
   renderSleepView();
-  if(cfg.apiKey){ clearTimeout(syncTimer); syncTimer=setTimeout(syncToCloud,2000); }
+  if(cfg.serverUrl){ clearTimeout(syncTimer); syncTimer=setTimeout(syncToServer,2000); }
 }
 function openWakeEdit() {
   const picker=document.getElementById('wakeEditPicker');
@@ -1005,7 +1004,7 @@ function addFoodStandalone() {
   const now=new Date(); foodStandaloneTs=now;
   document.getElementById('foodStandaloneTime').textContent=now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   renderFoodLog(); showToast('Food logged','success');
-  if(cfg.apiKey){ clearTimeout(syncTimer); syncTimer=setTimeout(syncToCloud,2000); }
+  if(cfg.serverUrl){ clearTimeout(syncTimer); syncTimer=setTimeout(syncToServer,2000); }
 }
 function deleteFood(id) {
   foodLogs=foodLogs.filter(f=>f.id!==id);
@@ -1272,45 +1271,47 @@ function saveProfile() {
 
 // ─── SYNC ─────────────────────────────────────────────────────────────────────
 function setSyncDot(state){ document.getElementById('syncDot').className='sync-dot '+state; }
-async function syncToCloud() {
-  if(!cfg.apiKey) return; setSyncDot('syncing');
+
+function getServerUrl(){ return cfg.serverUrl||''; }
+
+async function syncToServer() {
+  const url=getServerUrl(); if(!url){ setSyncDot('error'); return; }
+  setSyncDot('syncing');
   try {
-    const payload={entries, sleepLogs, foodLogs, lastSync:new Date().toISOString()}; // profile excluded — local only
-    if(!cfg.binId){
-      const res=await fetch('https://api.jsonbin.io/v3/b',{method:'POST',headers:{'Content-Type':'application/json','X-Master-Key':cfg.apiKey,'X-Bin-Name':'blocks-journal','X-Bin-Private':'true'},body:JSON.stringify(payload)});
-      if(!res.ok) throw new Error();
-      const d=await res.json(); cfg.binId=d.metadata.id; localStorage.setItem(CFG,JSON.stringify(cfg));
-      document.getElementById('binIdInput').value=cfg.binId;
-    } else {
-      const res=await fetch(`https://api.jsonbin.io/v3/b/${cfg.binId}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':cfg.apiKey},body:JSON.stringify(payload)});
-      if(!res.ok) throw new Error();
-    }
+    const payload={entries, sleepLogs, foodLogs};
+    const res=await fetch(url+'/api/data',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!res.ok) throw new Error('Server error '+res.status);
     setSyncDot('synced'); updateSyncStatus('Last synced: '+new Date().toLocaleTimeString());
-  } catch(e){ setSyncDot('error'); updateSyncStatus('Sync error'); }
+  } catch(e){ setSyncDot('error'); updateSyncStatus('Sync error: '+e.message); }
 }
-async function syncFromCloud() {
-  if(!cfg.apiKey||!cfg.binId) return; setSyncDot('syncing');
+
+async function syncFromServer() {
+  const url=getServerUrl(); if(!url){ setSyncDot('error'); return; }
+  setSyncDot('syncing');
   try {
-    const res=await fetch(`https://api.jsonbin.io/v3/b/${cfg.binId}/latest`,{headers:{'X-Master-Key':cfg.apiKey}});
-    if(!res.ok) throw new Error();
-    const remote=(await res.json()).record;
+    const res=await fetch(url+'/api/data');
+    if(!res.ok) throw new Error('Server error '+res.status);
+    const remote=await res.json();
     if(remote.entries?.length){ const merged=[...entries,...remote.entries]; const seen=new Set(); entries=merged.filter(e=>{ if(seen.has(e.id)) return false; seen.add(e.id); return true; }); entries.sort((a,b)=>new Date(b.ts)-new Date(a.ts)); localStorage.setItem(KEY,JSON.stringify(entries)); }
     if(remote.sleepLogs?.length){ const merged=[...sleepLogs,...remote.sleepLogs]; const seen=new Set(); sleepLogs=merged.filter(s=>{ if(seen.has(s.id)) return false; seen.add(s.id); return true; }); localStorage.setItem(SLEEP_KEY,JSON.stringify(sleepLogs)); }
     if(remote.foodLogs?.length){ const merged=[...foodLogs,...remote.foodLogs]; const seen=new Set(); foodLogs=merged.filter(f=>{ if(seen.has(f.id)) return false; seen.add(f.id); return true; }); localStorage.setItem(FOOD_KEY,JSON.stringify(foodLogs)); }
     refreshMeta(); setSyncDot('synced'); updateSyncStatus('Synced: '+new Date().toLocaleTimeString()); showToast('Synced','success');
-  } catch(e){ setSyncDot('error'); updateSyncStatus('Sync error'); showToast('Sync failed','err'); }
+  } catch(e){ setSyncDot('error'); updateSyncStatus('Sync error: '+e.message); showToast('Sync failed','err'); }
 }
-function syncNow(){ if(!cfg.apiKey){ showToast('Enter API key first','err'); return; } syncFromCloud().then(()=>syncToCloud()); }
-function saveApiKey(){
-  cfg.apiKey=document.getElementById('apiKeyInput').value.trim();
-  cfg.binId=document.getElementById('binIdInput').value.trim()||'';
+
+function syncNow(){ const url=getServerUrl(); if(!url){ showToast('Enter server URL first','err'); return; } syncFromServer().then(()=>syncToServer()); }
+
+function saveServerUrl(){
+  cfg.serverUrl=document.getElementById('serverUrlInput').value.trim();
   localStorage.setItem(CFG,JSON.stringify(cfg)); updateSyncStatus('Saved.'); showToast('Saved','success');
-  if(cfg.apiKey) syncToCloud();
+  if(cfg.serverUrl) syncFromServer().then(()=>syncToServer());
 }
-function updateSyncStatus(msg){ const el=document.getElementById('syncStatus'); if(el) el.textContent='Status: '+(msg||(!cfg.apiKey?'not configured':'configured')); }
+
+function updateSyncStatus(msg){ const el=document.getElementById('syncStatus'); if(el) el.textContent='Status: '+(msg||(!getServerUrl()?'not configured':'configured — '+getServerUrl())); }
+
 function loadSettings(){
-  if(cfg.apiKey) document.getElementById('apiKeyInput').value=cfg.apiKey;
-  if(cfg.binId)  document.getElementById('binIdInput').value=cfg.binId;
+  const urlEl=document.getElementById('serverUrlInput');
+  if(urlEl&&cfg.serverUrl) urlEl.value=cfg.serverUrl;
   updateSyncStatus(); updateDataCount();
 }
 
@@ -1378,7 +1379,7 @@ function showToast(msg, type=''){
 }
 
 init();
-if(cfg.apiKey&&cfg.binId) setTimeout(syncFromCloud,1000);
+if(cfg.serverUrl) setTimeout(()=>syncFromServer().then(()=>syncToServer()),1000);
 </script>
 </body>
 </html>
