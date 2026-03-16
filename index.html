@@ -616,7 +616,7 @@ header { position: sticky; top: 0; z-index: 100; background: var(--bg); border-b
         <button class="substance-btn" data-sub="nicotine" onclick="toggleSubstance(this)">Nicotine</button>
         <button class="substance-btn" data-sub="cannabis" onclick="toggleSubstance(this)">Cannabis</button>
       </div>
-      <div class="settings-note" style="margin-top:8px">Toggle what applies. Included in export context.</div>
+      <div class="settings-note" style="margin-top:8px">Toggle what applies. Stored locally only — never exported.</div>
     </div>
 
     <button class="profile-save-btn" id="profileSaveBtn" onclick="saveProfile()">Save Profile</button>
@@ -1119,24 +1119,7 @@ function setExportMode(mode, btn) {
   btn.classList.add('active'); generateExport();
 }
 
-function buildProfileHeader() {
-  if(!profile || !Object.keys(profile).length) return '';
-  const lines=['--- SUBJECT CONTEXT ---'];
-  if(profile.age) lines.push(`Age: ${profile.age}`);
-  if(profile.sex) lines.push(`Sex: ${profile.sex}`);
-  if(profile.height) lines.push(`Height: ${profile.height}`);
-  if(profile.role) lines.push(`Role: ${profile.role}`);
-  if(profile.schedule) lines.push(`Schedule: ${profile.schedule}`);
-  if(profile.timezone) lines.push(`Timezone: ${profile.timezone}`);
-  if(profile.sleepTarget) lines.push(`Sleep Target: ${profile.sleepTarget}h`);
-  if(profile.conditions) lines.push(`Conditions: ${profile.conditions}`);
-  if(profile.allergies) lines.push(`Allergies: ${profile.allergies}`);
-  if(profile.prescriptions&&profile.prescriptions.length) lines.push(`Prescriptions: ${profile.prescriptions.filter(r=>r.name).map(r=>r.name+(r.dose?' '+r.dose:'')).join(', ')}`);
-  if(profile.substances&&profile.substances.length) lines.push(`Substances: ${profile.substances.join(', ')}`);
-  if(profile.weightHistory&&profile.weightHistory.length) lines.push(`Last Weight: ${profile.weightHistory[0].val} (${profile.weightHistory[0].date})`);
-  lines.push('--- END CONTEXT ---','');
-  return lines.join('\n');
-}
+// profile never included in any export — local only
 
 function generateExport() {
   const now=new Date(), cutoff=exportRange===0?new Date(0):new Date(now-exportRange*24*60*60*1000);
@@ -1150,7 +1133,6 @@ function generateExport() {
     }
     const machineObj={
       meta:{generated:now.toISOString(),range_days:exportRange,blocks:filtered.length,sleep_nights:filteredSleep.length,food_entries:filteredFood.length},
-      profile: profile||{},
       blocks: filtered.map(e=>({
         id:e.id, ts:e.ts, location:e.location, company:e.company,
         activities:e.activities||[e.activity], energy:e.energy||null,
@@ -1200,7 +1182,6 @@ function generateExport() {
     byDay[day].forEach(e=>{ const t=new Date(e.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); const posTop=Object.entries(e.posAffect).filter(([,v])=>v>=4).map(([k])=>k).join(', ')||'—'; const negTop=Object.entries(e.negAffect).filter(([,v])=>v>=4).map(([k])=>k).join(', ')||'—'; dailyLines.push(`  ${t} · ${e.activity} · ${e.location} · ${e.company}${e.energy?' E'+e.energy:''}`); dailyLines.push(`       pos ${e.posScore}/25 [${posTop}] · neg ${e.negScore}/25 [${negTop}]${e.oneLiner?' "'+e.oneLiner+'"':''}`); });
   });
   document.getElementById('exportBox').textContent=[
-    buildProfileHeader(),
     `BLOCKS JOURNAL — ${rl.toUpperCase()}`,`Generated: ${new Date().toLocaleString()}`,`Entries: ${filtered.length} blocks`,``,
     `OVERALL`,`  Avg Positive: ${avgPos}/25`,`  Avg Negative: ${avgNeg}/25`,`  Avg Energy: ${avgE}/5`,`  Avg Sleep: ${avgSleep}`,``,
     `POSITIVE AFFECT`,...posAvgs,``,`NEGATIVE AFFECT`,...negAvgs,``,
@@ -1294,7 +1275,7 @@ function setSyncDot(state){ document.getElementById('syncDot').className='sync-d
 async function syncToCloud() {
   if(!cfg.apiKey) return; setSyncDot('syncing');
   try {
-    const payload={entries, sleepLogs, foodLogs, lastSync:new Date().toISOString()};
+    const payload={entries, sleepLogs, foodLogs, lastSync:new Date().toISOString()}; // profile excluded — local only
     if(!cfg.binId){
       const res=await fetch('https://api.jsonbin.io/v3/b',{method:'POST',headers:{'Content-Type':'application/json','X-Master-Key':cfg.apiKey,'X-Bin-Name':'blocks-journal','X-Bin-Private':'true'},body:JSON.stringify(payload)});
       if(!res.ok) throw new Error();
